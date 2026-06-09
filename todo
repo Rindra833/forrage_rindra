@@ -1,0 +1,156 @@
+Voici ce que fait ce projet, en clair.
+
+**Résumé**
+- C’est une application Spring Boot + JSP pour gérer des demandes de forage, leurs statuts, les devis associés et des alertes basées sur des seuils de durée.
+- Les objets principaux sont `Demande`, `StatutDemande`, `Devis`, `Detail`, `Parametre`, `Statut`, `TypeDevis`, `Client`, `Commune`.
+- Le menu principal est dans [index.jsp](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/webapp/WEB-INF/jsp/index.jsp) et pointe vers les 4 écrans métier.
+
+**Ce que fait exactement le code**
+- La partie demande est gérée par [DemandeController.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/controller/DemandeController.java#L42) et [DemandeService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/DemandeService.java#L23).
+- Quand tu crées une demande, le service enregistre la demande puis crée automatiquement un premier statut `DC` (`Demande créée`) dans `statut_demande`.
+- La demande contient une référence, une date, un client, un lieu et une commune. Les listes de clients/communes viennent de la base.
+- La liste des demandes est affichée dans [listedemande.jsp](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/webapp/WEB-INF/jsp/demande/listedemande.jsp).
+- L’écran “Alertes” utilise [ParametreService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/ParametreService.java#L21) pour calculer si une demande dépasse des seuils entre deux statuts.
+- La partie devis est gérée par [DevisController.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/controller/DevisController.java#L24) et [DevisService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/DevisService.java#L36).
+- Quand tu crées un devis, il:
+  - rattache le devis à une demande existante,
+  - rattache le devis à un type de devis,
+  - enregistre le devis,
+  - crée un nouveau statut de demande à partir du sigle du type de devis,
+  - enregistre les lignes de détail.
+- La partie statut de demande est gérée par [StatutDemandeController.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/controller/StatutDemandeController.java#L32) et [StatutDemandeService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/StatutDemandeService.java#L23).
+- Le calcul de durée travaille sur les jours ouvrés uniquement, entre 08:00 et 16:00, en excluant samedi et dimanche.
+- Les seuils d’alerte viennent de la table `parametre` définie dans [base.sql](/home/rindra/Documents/Mr_Naina/forrage_final/database/base.sql#L87).
+
+**Ce que j’ai vérifié**
+- Il n’y a qu’un test automatique dans [ForrageApplicationTests.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/test/java/com/forrage/ForrageApplicationTests.java), et c’est juste un `contextLoads()`.
+- J’ai essayé `bash mvnw test` ici, et ça échoue parce que l’application essaie de se connecter à MySQL sur `jdbc:mysql://localhost:3306/forrage` sans serveur accessible dans cet environnement, comme configuré dans [application.properties](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/resources/application.properties#L4).
+
+**Comment tester correctement**
+1. Démarre MySQL localement.
+2. Crée la base `forrage` en important [database/base.sql](/home/rindra/Documents/Mr_Naina/forrage_final/database/base.sql).
+3. Vérifie que l’utilisateur `root` fonctionne avec mot de passe vide, ou adapte [application.properties](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/resources/application.properties#L5).
+4. Lance l’application avec `bash mvnw spring-boot:run` ou `mvn spring-boot:run`.
+5. Ouvre `http://localhost:8080/`.
+
+**Quoi remplir dans l’interface**
+
+**1. Ajouter une demande**
+- Va sur `/demandes/form`.
+- Remplis:
+  - `Référence`: par exemple `DEM-001`
+  - `Date`: par exemple `2026-06-06T14:00`
+  - `Client`: choisis `Jean` ou `Marie`
+  - `Lieu`: par exemple `Lot II Bis`
+  - `Commune`: choisis une commune comme `Ampitatafika`
+- Clique sur “Créer une demande”.
+- Résultat attendu:
+  - tu retournes à la liste des demandes,
+  - la demande est enregistrée,
+  - un premier statut `DC` est créé automatiquement.
+
+**2. Ajouter un devis**
+- Va sur `/devis/form`.
+- Remplis:
+  - `Demande`: mets une référence qui existe déjà, par exemple `DEM-001`
+  - `Référence`: par exemple `DEV-001`
+  - `Type du devis`: `Devis étude` ou `Devis forrage`
+  - `Date`: par exemple `2026-06-06T15:00`
+- Clique sur `Ligne` au moins une fois, sinon l’enregistrement risque d’échouer parce que le backend s’attend à des détails.
+- Pour chaque ligne, remplis:
+  - `Libellé`: par exemple `Forage principal`
+  - `Qté`: par exemple `1`
+  - `Unité`: par exemple `forfait`
+  - `Prix unitaire`: par exemple `500000`
+- Le champ `Montant` se calcule tout seul.
+- Clique sur “Créer un devis”.
+- Résultat attendu:
+  - le devis est enregistré,
+  - ses détails sont enregistrés,
+  - un nouveau statut de demande est créé automatiquement.
+
+**3. Ajouter un statut de demande**
+- Va sur `/statut-demande/ajout`.
+- Remplis:
+  - `Demande`: mets une référence existante, par exemple `DEM-001`
+  - `Date`: optionnelle
+  - `Observation`: par exemple `Premier suivi`
+  - `Statut`: sélectionne une valeur dans la liste
+- Important: après avoir tapé la référence et quitté le champ, le JS appelle l’API pour afficher la demande et remplir la liste des statuts disponibles. C’est défini dans [demande.js](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/resources/static/Js/demande.js#L1).
+- Résultat attendu:
+  - un statut de demande est ajouté,
+  - tu reviens sur le même écran avec un message de succès.
+
+**4. Modifier un statut de demande**
+- Va sur `/statut-demande/modif`.
+- Remplis d’abord la référence de demande.
+- Puis choisis un statut dans la liste.
+- Le script [statutDemande.js](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/resources/static/Js/statutDemande.js#L1) va:
+  - récupérer l’identifiant du statut choisi,
+  - charger la date et l’observation existantes,
+  - changer automatiquement l’action du formulaire vers `/statut-demande/update/{id}`.
+- Modifie la date ou l’observation si besoin, puis envoie.
+- Résultat attendu:
+  - le statut choisi est mis à jour.
+
+**5. Voir les alertes**
+- Ouvre `/demandes/liste`.
+- Clique sur “Alertes” pour une demande.
+- L’écran [listealerte.jsp](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/webapp/WEB-INF/jsp/demande/listealerte.jsp) affiche:
+  - le statut de départ,
+  - le statut d’arrivée,
+  - la durée totale,
+  - l’alerte calculée à partir des seuils de `parametre`.
+
+**Points importants à savoir**
+- Le champ `datetime-local` doit être saisi au format `YYYY-MM-DDTHH:MM`.
+- Pour les références, utilise des valeurs uniques, parce que la recherche côté backend fait un `containsIgnoreCase`, pas un match strict.
+- La liste des statuts affichée dans l’UI dépend de l’historique de la demande, pas de tous les statuts en base. Avec une demande fraîchement créée, tu verras surtout le statut initial `DC`.
+- Il y a un bug dans [StatutDemandeService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/StatutDemandeService.java#L64): `calculerDureeTravailleApres()` recalculte bien la durée du statut suivant, mais sauvegarde le mauvais objet. Donc le voisin peut ne pas être persisté correctement.
+- Il y a aussi une fragilité dans [DevisService.java](/home/rindra/Documents/Mr_Naina/forrage_final/src/main/java/com/forrage/service/DevisService.java#L59): si aucune ligne de détail n’est ajoutée, ça peut planter.
+
+
+
+
+
+
+
+
+
+
+**URLs qui existent vraiment dans le code**
+- GET / -> page d’accueil, dans DemandeController.java (line 37)
+
+- GET /demandes/form -> formulaire de demande, dans DemandeController.java (line 42)
+
+- GET /demandes/liste -> liste des demandes, dans DemandeController.java (line 54)
+
+- GET /demandes/{idDemande}/alertes/liste -> page des alertes d’une demande, dans DemandeController.java (line 62)
+
+- POST /demandes/add -> enregistrement d’une demande, dans DemandeController.java (line 81)
+
+- GET /demandes/rechercher/{reference} -> renvoie la demande en JSON, dans DemandeController.java (line 118)
+
+- GET /demandes/alertes/{reference} -> renvoie les alertes en JSON, dans DemandeController.java (line 135)
+
+- GET /devis/form -> formulaire devis, dans DevisController.java (line 24)
+
+- GET /devis/liste -> liste devis, dans DevisController.java (line 33)
+
+POST /devis/add -> enregistrement devis, dans DevisController.java (line 40)
+
+- GET /statut-demande/ajout -> formulaire ajout statut, dans StatutDemandeController.java (line 32)
+
+- GET /statut-demande/modif -> formulaire modification statut, dans StatutDemandeController.java (line 40)
+
+- GET /statut-demande/rechercher/statuts/{reference} -> liste des statuts d’une demande en JSON, dans StatutDemandeController.java (line 48)
+
+- GET /statut-demande/rechercher/{reference}/{idStatut} -> récupère un statut précis en JSON, dans StatutDemandeController.java (line 64)
+
+- POST /statut-demande/add -> ajout statut demande, dans StatutDemandeController.java (line 77)
+
+- POST /statut-demande/update/{idStatutDemande} -> modification statut demande, dans StatutDemandeController.java (line 110)
+
+URLs qui ne sont pas implémentées
+- GET /demandes/delete/{id}
+- GET /devis/delete/{id}

@@ -1,0 +1,27 @@
+<nav class="navbar navbar-expand-lg navbar-light app-navbar">
+    <div class="container-fluid px-3 px-md-4 py-2">
+        <a class="navbar-brand" href="${pageContext.request.contextPath}/">
+            <span class="brand-mark"><i class="bi bi-droplet-half"></i></span>
+            <span>Forrage</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Basculer la navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/demandes/liste">Demandes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/devis/liste">Devis</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/statut-demande/ajout">Ajouter statut</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/statut-demande/modif">Modifier statut</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
